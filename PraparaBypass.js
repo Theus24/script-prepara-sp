@@ -18,5 +18,5 @@ javascript:(function(){
         console.log('[PraparaBypass] Hook fetch ativo!');
     };
     hookFetch();
-    setInterval(hookFetch, 2000); // garante que se o site recriar fetch, ainda interceptamos
+    setInterval(hookFetch, 2000);
 })();
