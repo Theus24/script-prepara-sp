@@ -1,22 +1,49 @@
-javascript:(function(){
-    const hookFetch = () => {
-        const originalFetch = window.fetch;
-        window.fetch = async function(resource, config){
-            if(typeof resource==='string' && resource.includes('/graphql') && config?.body?.includes('createUserInteraction')){
-                try{
-                    let body = JSON.parse(config.body);
-                    body.variables.performance = 1;
-                    body.variables.timeSpentInSeconds = Math.floor(Math.random()*15)+5;
-                    config.body = JSON.stringify(body);
-                    console.log('[PraparaBypass] 100% aplicado para:', body.variables.contentId);
-                }catch(e){
-                    console.error('[PraparaBypass] erro:', e);
+// ==UserScript==
+// @name         PraparaSP Resposta Notificação Funcional
+// @namespace    http://tampermonkey.net/
+// @version      1.1
+// @description  Mostra a alternativa correta de qualquer quiz via notificação
+// @match        https://preparasp.jovensgenios.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Permite notificações
+    if (Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+
+    const originalFetch = window.fetch;
+    window.fetch = async function(resource, config) {
+        const response = await originalFetch(resource, config);
+
+        if (typeof resource === 'string' && resource.includes('/graphql')) {
+            const clone = response.clone();
+            clone.json().then(data => {
+                if (data?.data?.questions) {
+                    data.data.questions.forEach(question => {
+                        const correct = question.answers.find(a => a.fraction === 1);
+                        if (!correct) return;
+
+                        const textCorrect = correct.text.replace(/<[^>]+>/g, '').trim();
+                        console.log("Alternativa correta:", textCorrect);
+
+                        if (Notification.permission === "granted") {
+                            new Notification("PraparaSP ✅", {
+                                body: `Resposta correta: ${textCorrect}`,
+                                icon: "https://preparasp.jovensgenios.com/favicon.ico"
+                            });
+                        } else {
+                            alert(`Resposta correta: ${textCorrect}`);
+                        }
+                    });
                 }
-            }
-            return originalFetch.apply(this, arguments);
-        };
-        console.log('[PraparaBypass] Hook fetch ativo!');
+            }).catch(console.error);
+        }
+
+        return response;
     };
-    hookFetch();
-    setInterval(hookFetch, 2000);
 })();
+
